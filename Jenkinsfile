@@ -85,31 +85,25 @@ pipeline {
         docker {
             image 'markhobson/maven-chrome:latest'
             args '-v /tmp:/tmp --network host'
+            reuseNode true // Reuse the same node for workspace consistency
         }
     }
     stages {
         stage('Build') {
             steps {
-                // Wrap git and sh steps in a node to ensure workspace context
-                node('') {
-                    git url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git', branch: 'main', credentialsId: 'github-credentials'
-                    sh 'mvn clean compile'
-                }
+                git url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git', branch: 'main', credentialsId: 'github-credentials'
+                sh 'mvn clean compile'
             }
         }
         stage('Test') {
             steps {
-                node('') {
-                    sh 'mvn test'
-                }
+                sh 'mvn test'
             }
         }
     }
     post {
         always {
-            node('') {
-                archiveArtifacts artifacts: 'target/surefire-reports/*.xml', allowEmptyArchive: true
+            echo 'pipeline ended'
             }
-        }
     }
 }
