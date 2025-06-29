@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  dvd-tests:
+    image: markhobson/maven-chrome:latest
+    container_name: dvd-tests
+    volumes:
+      - .:/usr/src/app
+      - /home/jenkins/.m2:/home/jenkins/.m2
+    working_dir: /usr/src/app
+    command: mvn test
