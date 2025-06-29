@@ -84,26 +84,40 @@ pipeline {
     agent {
         docker {
             image 'markhobson/maven-chrome:latest'
-            args '-v /tmp:/tmp --network host'
-            reuseNode true // Reuse the same node for workspace consistency
+            args '-v /tmp:/tmp -v /home/jenkins/.m2:/home/jenkins/.m2 --network host --user $(id -u jenkins):$(id -g jenkins)'
+            reuseNode true
         }
     }
+    environment {
+        HOME = '/home/jenkins'
+    }
     stages {
+        stage('Debug Environment') {
+            steps {
+                sh '''
+                    whoami
+                    echo "HOME=$HOME"
+                    curl -I http://44.206.237.47:5000 || echo "Failed to reach application"
+                    docker ps
+                    mvn --version
+                '''
+            }
+        }
         stage('Build') {
             steps {
-                git url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git', branch: 'main', credentialsId: 'github-credentials'
-                sh 'mvn clean compile'
+                git url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git', branch: 'main'
+                sh 'mvn -Dmaven.repo.local=/home/jenkins/.m2/repository clean compile'
             }
         }
         stage('Test') {
             steps {
-                sh 'mvn test'
+                sh 'mvn -Dmaven.repo.local=/home/jenkins/.m2/repository test'
             }
         }
     }
     post {
         always {
-            echo 'pipeline ended'
-            }
+            archiveArtifacts artifacts: 'target/surefire-reports/*.xml', allowEmptyArchive: true
+        }
     }
 }
