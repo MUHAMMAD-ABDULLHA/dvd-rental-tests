@@ -90,19 +90,26 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                git url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git', branch: 'main', credentialsId: 'github-credentials'
-                sh 'mvn clean compile'
+                // Wrap git and sh steps in a node to ensure workspace context
+                node('') {
+                    git url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git', branch: 'main', credentialsId: 'github-credentials'
+                    sh 'mvn clean compile'
+                }
             }
         }
         stage('Test') {
             steps {
-                sh 'mvn test'
+                node('') {
+                    sh 'mvn test'
+                }
             }
         }
     }
     post {
         always {
-            archiveArtifacts artifacts: 'target/surefire-reports/*.xml', allowEmptyArchive: true
+            node('') {
+                archiveArtifacts artifacts: 'target/surefire-reports/*.xml', allowEmptyArchive: true
+            }
         }
     }
 }
