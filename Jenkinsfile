@@ -81,27 +81,45 @@
 //     }
 // }
 pipeline {
-    agent {
-        docker {
-            image 'markhobson/maven-chrome:latest'
-            args '-v /home/jenkins/.m2:/home/jenkins/.m2'
-        }
-    }
+    agent any
+
     stages {
-        stage('Clone Repository') {
+        stage('Clean Old Containers') {
+            steps {
+                sh '''
+                docker rm -f dvd-tests || true
+                '''
+            }
+        }
+
+        stage('Clone Test Repo') {
             steps {
                 git branch: 'main', url: 'https://github.com/MUHAMMAD-ABDULLHA/dvd-rental-tests.git'
             }
         }
-        stage('Build') {
+
+        stage('Run Maven Tests Against EC2 App') {
             steps {
-                sh 'mvn -Dmaven.repo.local=/home/jenkins/.m2/repository -DskipTests clean install'
+                dir('dvd-rental-tests') {
+                    sh '''
+                    docker run --rm \
+                      -v /home/jenkins/.m2:/home/jenkins/.m2 \
+                      -v $(pwd):/usr/src/app \
+                      -w /usr/src/app \
+                      markhobson/maven-chrome:latest \
+                      mvn test
+                    '''
+                }
             }
         }
-        stage('Test') {
-            steps {
-                sh 'mvn -Dmaven.repo.local=/home/jenkins/.m2/repository test'
-            }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up containers after pipeline...'
+            sh '''
+            docker rm -f dvd-tests || true
+            '''
         }
     }
 }
